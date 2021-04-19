@@ -117,7 +117,7 @@ public class Sync {
 	
 	private static void puneLogo(BufferedImage img) {
 		
-		AlphaComposite alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f);
+		AlphaComposite alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f);
 		Graphics2D g2d = (Graphics2D) img.getGraphics();
 		
 		g2d.setComposite(alphaChannel);
