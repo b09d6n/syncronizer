@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -23,6 +25,8 @@ import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 
 public class Sync {
+	
+	private static Properties prop;
 	
 	private static Set<String> destinations;
 	private static Set<String> sources;
@@ -35,17 +39,24 @@ public class Sync {
 	
 	private static BufferedImage logo;
 
-	public static void init(String[] args) {
-		source = args[0];
-		destination = args[1];
+	public static void init(String fisierProprietati) {
+		prop = new Properties();
+		try(FileReader fd = new FileReader(fisierProprietati)) {
+			prop.load(fd);
+		} catch (IOException e1) {
+			System.err.println("Eroare incarcare proprietati " + e1.getMessage());
+			System.exit(1);
+		}
+		source = prop.getProperty("SURSA");
+		destination = prop.getProperty("DEST");
 		List<String> numeFisiere = Arrays.asList(new File(source).list());
 		sources = new HashSet<String>(numeFisiere);
 		searchSources = new HashSet<String>(numeFisiere.parallelStream().map(String::toUpperCase).collect(Collectors.toList()));
 		destinations = new HashSet<String>(Arrays.asList(new File(destination).list()));
 		try {
-			logo = ImageIO.read(new File(args[2]));
+			logo = ImageIO.read(new File(prop.getProperty("LOGO")));
 		} catch (IOException e) {
-			System.err.println("Eroare incarcare logo " + args[2] + " " + e.getMessage());
+			System.err.println("Eroare incarcare logo " + prop.getProperty("LOGO") + " " + e.getMessage());
 			System.exit(1);
 		}
 		transformari.add(s->resize(s));
@@ -63,7 +74,7 @@ public class Sync {
 	
 	private static Boolean doCopy(String name)  {
 				
-		return (name.toUpperCase().endsWith("JPG") || name.toUpperCase().endsWith("JPEG")) && (!destinations.contains(name.toUpperCase()) || maiNou(name));
+		return (Boolean) prop.get("INIT") && (name.toUpperCase().endsWith("JPG") || name.toUpperCase().endsWith("JPEG")) && (!destinations.contains(name.toUpperCase()) || maiNou(name));
 	}
 	
 	private static Boolean maiNou(String name) {
@@ -117,7 +128,7 @@ public class Sync {
 	
 	private static void puneLogo(BufferedImage img) {
 		
-		AlphaComposite alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f);
+		AlphaComposite alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, (Float) prop.get("ALPHA"));
 		Graphics2D g2d = (Graphics2D) img.getGraphics();
 		
 		g2d.setComposite(alphaChannel);
@@ -142,7 +153,7 @@ public class Sync {
 	private static BufferedImage resize (BufferedImage img) {		
 		
 		Dimension imgSize = new Dimension(img.getWidth(), img.getHeight());
-		Dimension boundary = new Dimension(640, 480);
+		Dimension boundary = new Dimension((int) prop.get("WIDTH"),(int) prop.get("HEIGHT"));
 		Dimension newD = getScaledDimension(imgSize, boundary);
         BufferedImage resizeImageJpg = resizeImage(img, BufferedImage.TYPE_INT_RGB, newD.width, newD.height);
         return resizeImageJpg;
