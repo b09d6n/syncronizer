@@ -38,6 +38,12 @@ public class Sync {
 	private static List<Consumer<BufferedImage>> transformari = new ArrayList<Consumer<BufferedImage>>();
 	
 	private static BufferedImage logo;
+	
+	private static Boolean ignoraFisiereleExistente;
+	
+	private static Dimension boundary;
+	
+	private static float alphaValue;
 
 	public static void init(String fisierProprietati) {
 		prop = new Properties();
@@ -47,8 +53,13 @@ public class Sync {
 			System.err.println("Eroare incarcare proprietati " + e1.getMessage());
 			System.exit(1);
 		}
+		
 		source = prop.getProperty("SURSA");
 		destination = prop.getProperty("DEST");
+		ignoraFisiereleExistente = Boolean.valueOf( prop.getProperty("INIT"));
+		boundary = new Dimension(Integer.valueOf(prop.getProperty("WIDTH")), Integer.valueOf(prop.getProperty("HEIGHT")));
+		alphaValue =  Float.valueOf( prop.getProperty("ALPHA"));
+
 		List<String> numeFisiere = Arrays.asList(new File(source).list());
 		sources = new HashSet<String>(numeFisiere);
 		searchSources = new HashSet<String>(numeFisiere.parallelStream().map(String::toUpperCase).collect(Collectors.toList()));
@@ -73,8 +84,7 @@ public class Sync {
 	
 	
 	private static Boolean doCopy(String name)  {
-				
-		return (Boolean) prop.get("INIT") && (name.toUpperCase().endsWith("JPG") || name.toUpperCase().endsWith("JPEG")) && (!destinations.contains(name.toUpperCase()) || maiNou(name));
+		return ignoraFisiereleExistente || (name.toUpperCase().endsWith("JPG") || name.toUpperCase().endsWith("JPEG")) && (!destinations.contains(name.toUpperCase()) || maiNou(name));
 	}
 	
 	private static Boolean maiNou(String name) {
@@ -128,7 +138,7 @@ public class Sync {
 	
 	private static void puneLogo(BufferedImage img) {
 		
-		AlphaComposite alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, (Float) prop.get("ALPHA"));
+		AlphaComposite alphaChannel = AlphaComposite.getInstance(AlphaComposite.SRC_OVER,alphaValue );
 		Graphics2D g2d = (Graphics2D) img.getGraphics();
 		
 		g2d.setComposite(alphaChannel);
@@ -153,7 +163,7 @@ public class Sync {
 	private static BufferedImage resize (BufferedImage img) {		
 		
 		Dimension imgSize = new Dimension(img.getWidth(), img.getHeight());
-		Dimension boundary = new Dimension((Integer) prop.get("WIDTH"),(Integer) prop.get("HEIGHT"));
+		
 		Dimension newD = getScaledDimension(imgSize, boundary);
         BufferedImage resizeImageJpg = resizeImage(img, BufferedImage.TYPE_INT_RGB, newD.width, newD.height);
         return resizeImageJpg;

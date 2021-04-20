@@ -1,0 +1,26 @@
+##Fisier de setari pentru sincronizare##
+
+#Dimensiunile la care se redimensioneaza pozele IN PIXELI
+
+WIDTH:640
+HEIGHT:480
+
+#Nivelul de transparenta pt logo central
+
+ALPHA:0.5
+
+#Calea folderului sursa
+
+SURSA:c:\\poze\\poze_laptop
+
+#Calea folderului destinatie
+
+DEST:c:\\poze\\pozeAplicatie
+
+#Calea catre logo
+
+LOGO:C:\\Poze\\logoAplicatie\\logoPiccolinoAplicatie.png
+
+#Reinitializare, rescrie toate pozele din destinatie
+
+INIT:false
