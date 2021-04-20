@@ -153,7 +153,7 @@ public class Sync {
 	private static BufferedImage resize (BufferedImage img) {		
 		
 		Dimension imgSize = new Dimension(img.getWidth(), img.getHeight());
-		Dimension boundary = new Dimension((int) prop.get("WIDTH"),(int) prop.get("HEIGHT"));
+		Dimension boundary = new Dimension((Integer) prop.get("WIDTH"),(Integer) prop.get("HEIGHT"));
 		Dimension newD = getScaledDimension(imgSize, boundary);
         BufferedImage resizeImageJpg = resizeImage(img, BufferedImage.TYPE_INT_RGB, newD.width, newD.height);
         return resizeImageJpg;
