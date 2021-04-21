@@ -1,8 +1,7 @@
 package syncronizer;
 
-import java.awt.AlphaComposite;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileReader;
@@ -12,31 +11,18 @@ import java.nio.file.LinkOption;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.function.Consumer;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.imageio.ImageIO;
-
 public class Sync {
-	
-	private static Properties prop;
-	
+
 	private static Set<String> destinations;
-	private static Set<String> sources;
-	private static Set<String> searchSources;
 
 	private static String source;
 	private static String destination;
-	
-	private static List<Consumer<BufferedImage>> transformari = new ArrayList<Consumer<BufferedImage>>();
-	
+
 	private static BufferedImage logo;
 	
 	private static Boolean ignoraFisiereleExistente;
@@ -46,34 +32,33 @@ public class Sync {
 	private static float alphaValue;
 
 	public static void init(String fisierProprietati) {
-		prop = new Properties();
-		try(FileReader fd = new FileReader(fisierProprietati)) {
+		Properties prop = new Properties();
+		try (FileReader fd = new FileReader(fisierProprietati)) {
 			prop.load(fd);
 		} catch (IOException e1) {
 			System.err.println("Eroare incarcare proprietati " + e1.getMessage());
 			System.exit(1);
 		}
-		
+
 		source = prop.getProperty("SURSA");
 		destination = prop.getProperty("DEST");
-		ignoraFisiereleExistente = Boolean.valueOf( prop.getProperty("INIT"));
-		boundary = new Dimension(Integer.valueOf(prop.getProperty("WIDTH")), Integer.valueOf(prop.getProperty("HEIGHT")));
-		alphaValue =  Float.valueOf( prop.getProperty("ALPHA"));
+		ignoraFisiereleExistente = Boolean.valueOf(prop.getProperty("INIT"));
+		boundary = new Dimension(Integer.parseInt(prop.getProperty("WIDTH")), Integer.parseInt(prop.getProperty("HEIGHT")));
+		alphaValue = Float.parseFloat(prop.getProperty("ALPHA"));
 
-		List<String> numeFisiere = Arrays.asList(new File(source).list());
-		sources = new HashSet<String>(numeFisiere);
-		searchSources = new HashSet<String>(numeFisiere.parallelStream().map(String::toUpperCase).collect(Collectors.toList()));
-		destinations = new HashSet<String>(Arrays.asList(new File(destination).list()));
+		List<String> numeFisiere = Arrays.asList(Objects.requireNonNull(new File(source).list()));
+		Set<String> sources = new HashSet<>(numeFisiere);
+		Set<String> searchSources = numeFisiere.parallelStream().map(String::toUpperCase).collect(Collectors.toSet());
+		destinations = new HashSet<>(Arrays.asList(Objects.requireNonNull(new File(destination).list())));
 		try {
 			logo = ImageIO.read(new File(prop.getProperty("LOGO")));
 		} catch (IOException e) {
 			System.err.println("Eroare incarcare logo " + prop.getProperty("LOGO") + " " + e.getMessage());
 			System.exit(1);
 		}
-		transformari.add(s->resize(s));
-		transformari.add(s->puneLogo(s));
 
-		sources.parallelStream().filter(Sync::doCopy).filter(Sync::copiaza).forEach(s->applyTransformations(s));
+
+		sources.parallelStream().filter(Sync::doCopy).filter(Sync::copiaza).forEach(Sync::applyTransformations);
 		destinations.parallelStream().filter(not(searchSources::contains)).forEach(Sync::delete);
 
 	}
@@ -131,8 +116,7 @@ public class Sync {
 			}
 		} catch (IOException | IllegalArgumentException e) {
 			System.err.printf("Eroare la fisierul %s, eroarea este: %s",name,e.getMessage());
-			
-			return;
+
 		}
 	}
 	
@@ -149,44 +133,45 @@ public class Sync {
  
         // paints the image watermark
         g2d.drawImage(logo, topLeftX, topLeftY, null);
-        
-        g2d.setComposite(alphaChannel.derive(1f));
-        
-        topLeftX = img.getWidth() - (int) (logo.getWidth()* 1.3);
-        topLeftY = img.getHeight() - (int) (logo.getHeight()* 1.3);
- 
-        // paints the image watermark
-        g2d.drawImage(logo, topLeftX, topLeftY, null);
-        
-        g2d.dispose();
+
+		g2d.setComposite(alphaChannel.derive(1f));
+
+		topLeftX = img.getWidth() - (int) (logo.getWidth() * 1.3);
+		topLeftY = img.getHeight() - (int) (logo.getHeight() * 1.3);
+
+		// paints the image watermark
+		g2d.drawImage(logo, topLeftX, topLeftY, null);
+
+		g2d.dispose();
 	}
-	private static BufferedImage resize (BufferedImage img) {		
-		
+
+	private static BufferedImage resize(BufferedImage img) {
+
 		Dimension imgSize = new Dimension(img.getWidth(), img.getHeight());
-		
+
 		Dimension newD = getScaledDimension(imgSize, boundary);
-        BufferedImage resizeImageJpg = resizeImage(img, BufferedImage.TYPE_INT_RGB, newD.width, newD.height);
-        return resizeImageJpg;
+		return resizeImage(img, newD.width, newD.height);
 	}
+
 	static Dimension getScaledDimension(Dimension imageSize, Dimension boundary) {
 
-	    double widthRatio = boundary.getWidth() / imageSize.getWidth();
-	    double heightRatio = boundary.getHeight() / imageSize.getHeight();
-	    double ratio = Math.min(widthRatio, heightRatio);
+		double widthRatio = boundary.getWidth() / imageSize.getWidth();
+		double heightRatio = boundary.getHeight() / imageSize.getHeight();
+		double ratio = Math.min(widthRatio, heightRatio);
 
-	    return new Dimension((int) (imageSize.width  * ratio),
-	                         (int) (imageSize.height * ratio));
+		return new Dimension((int) (imageSize.width * ratio),
+				(int) (imageSize.height * ratio));
 	}
-	private static BufferedImage resizeImage(BufferedImage originalImage, int type,
-            Integer img_width, Integer img_height)
-		{
-			BufferedImage resizedImage = new BufferedImage(img_width, img_height, type);
-			Graphics2D g = resizedImage.createGraphics();
-			g.drawImage(originalImage, 0, 0, img_width, img_height, null);
-			g.dispose();
-			
-			return resizedImage;
-		}	
-	
-	
+
+	private static BufferedImage resizeImage(BufferedImage originalImage,
+											 Integer img_width, Integer img_height) {
+		BufferedImage resizedImage = new BufferedImage(img_width, img_height, BufferedImage.TYPE_INT_RGB);
+		Graphics2D g = resizedImage.createGraphics();
+		g.drawImage(originalImage, 0, 0, img_width, img_height, null);
+		g.dispose();
+
+		return resizedImage;
+	}
+
+
 }
